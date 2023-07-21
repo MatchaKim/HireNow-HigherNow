@@ -2,10 +2,8 @@ package com.kimjunsik.HireNow.service;
 
 import com.kimjunsik.HireNow.entity.LocationInfo;
 import com.kimjunsik.HireNow.timeformatting.TimeFormatter;
-import com.kimjunsik.HireNow.dto.ApplyResponse;
 import com.kimjunsik.HireNow.dto.JobListRequest;
 import com.kimjunsik.HireNow.dto.JobListResponse;
-import com.kimjunsik.HireNow.entity.Application;
 import com.kimjunsik.HireNow.entity.JobListing;
 import com.kimjunsik.HireNow.repository.ApplicationRepository;
 import com.kimjunsik.HireNow.repository.JobListingRepository;
@@ -33,9 +31,9 @@ public class JobListingService {
     private final ApplicationRepository applicationRepository;
     private final JobListingRepository jobListingRepository;
 
-    public String saveRecruit(JobListRequest request){
+    public ResponseEntity<String> saveRecruit(JobListRequest request) {
         if (request.getFile().isEmpty()) {
-            return "File is Empty";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is Empty");
         }
 
         try {
@@ -43,7 +41,7 @@ public class JobListingService {
             TimeFormatter timeFormatter = new TimeFormatter();
             // 저장할 경로와 파일명 설정
             String directory = "/root/companylogo";
-            String fileName = timeFormatter.getFormattedTime()+request.getFile().getOriginalFilename();
+            String fileName = timeFormatter.getFormattedTime() + request.getFile().getOriginalFilename();
             String filePath = directory + "/" + fileName;
 
             // 파일 저장
@@ -76,17 +74,17 @@ public class JobListingService {
 
             jobListingRepository.save(jobListing);
 
-            return "File uploaded successfully";
+            return ResponseEntity.ok("File uploaded successfully");
         } catch (IOException e) {
             e.printStackTrace();
-            return "File upload failed";
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("File upload failed");
         }
 
 
     }
 
 
-    public JobListResponse getDetailJob(Long jobListId){
+    public JobListResponse getDetailJob(Long jobListId) {
 
         JobListing jobListing = jobListingRepository.findById(jobListId).get();
         String formattedDate = TimeFormatter.formattingTime(jobListing.getCreatedTime());
@@ -112,28 +110,8 @@ public class JobListingService {
         return jobListResponse;
 
 
-
     }
-    public ApplyResponse getDetail(Long jobListId ,
-                                   Long applicationId){
 
-        Application application =
-        applicationRepository.findByAppicationIdAndJobListId(jobListId,applicationId).get();
-        String formattedDate = TimeFormatter.formattingTime(application.getCreatedTime());
-
-        ApplyResponse applyResponse = ApplyResponse.builder()
-                .jobListId(application.getJobListing().getJobListId())
-                .applicationId(application.getAppicationId())
-                .name(application.getName())
-                .age(application.getAge())
-                .gender(application.getGender())
-                .answer1(application.getAnswer1())
-                .answer2(application.getAnswer2())
-                .answer3(application.getAnswer3())
-                .createdTime(formattedDate)
-                .build();
-        return applyResponse;
-    }
 
     public List<JobListResponse> getJobList() {
         List<JobListing> jobListingList = jobListingRepository.findAllByOrderByJobListIdDesc();
@@ -160,33 +138,29 @@ public class JobListingService {
         return jobListResponseList;
     }
 
-    public List<ApplyResponse> getApplicationList(Long jobListId, String password) {
-        JobListing jobListing = jobListingRepository.findById(jobListId).orElse(null);
+    public List<JobListResponse> getHotJobList() {
+        List<JobListing> jobListingList = jobListingRepository.findByOrderByApplicationsDesc();
+        List<JobListResponse> jobListResponseList = new ArrayList<>();
 
-        if (jobListing != null) {
-            String savedPassword = jobListing.getPassword();
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        for (JobListing jobListing : jobListingList) {
 
-            if (passwordEncoder.matches(password, savedPassword)) {
-                List<Application> applicationList = applicationRepository.findAllByJobListId(jobListId);
-                List<ApplyResponse> applyResponseList = new ArrayList<>();
+            String formattedDate = TimeFormatter.formattingTime(jobListing.getCreatedTime());
 
-                for (Application application : applicationList) {
-                    String formattedDate = TimeFormatter.formattingTime(application.getCreatedTime());
 
-                    ApplyResponse applyResponse = ApplyResponse.builder()
-                            .applicationId(application.getAppicationId())
-                            .name(application.getName())
-                            .createdTime(formattedDate)
-                            .build();
-
-                    applyResponseList.add(applyResponse);
-                }
-                return applyResponseList;
-            }
+            JobListResponse jobListResponse = JobListResponse.builder()
+                    .jobListId(jobListing.getJobListId())
+                    .companyName(jobListing.getCompanyName())
+                    .companyInfo(jobListing.getCompanyInfo())
+                    .companyAddress(jobListing.getCompanyAddress())
+                    .employmentType(jobListing.getEmploymentType())
+                    .wage(jobListing.getWage())
+                    .deadline(jobListing.getDeadline())
+                    .recruitTitle(jobListing.getRecruitTitle())
+                    .build();
+            jobListResponseList.add(jobListResponse);
         }
 
-        return null;
+        return jobListResponseList;
     }
 
 
@@ -206,6 +180,31 @@ public class JobListingService {
         }
     }
 
+
+    public List<JobListResponse> getSearchJobList(String keyword) {
+        List<JobListing> jobListings = jobListingRepository.findByCompanyNameOrRecruitTitleContaining(keyword);
+        List<JobListResponse> jobListResponseList = new ArrayList<>();
+
+        for (JobListing jobListing : jobListings) {
+
+            String formattedDate = TimeFormatter.formattingTime(jobListing.getCreatedTime());
+
+
+            JobListResponse jobListResponse = JobListResponse.builder()
+                    .jobListId(jobListing.getJobListId())
+                    .companyName(jobListing.getCompanyName())
+                    .companyInfo(jobListing.getCompanyInfo())
+                    .companyAddress(jobListing.getCompanyAddress())
+                    .employmentType(jobListing.getEmploymentType())
+                    .wage(jobListing.getWage())
+                    .deadline(jobListing.getDeadline())
+                    .recruitTitle(jobListing.getRecruitTitle())
+                    .build();
+            jobListResponseList.add(jobListResponse);
+        }
+
+        return jobListResponseList;
+    }
 
 
 }

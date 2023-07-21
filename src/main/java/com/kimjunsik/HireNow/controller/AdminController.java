@@ -1,27 +1,19 @@
 package com.kimjunsik.HireNow.controller;
 
 
-import com.kimjunsik.HireNow.dto.Password;
-import com.kimjunsik.HireNow.repository.JobListingRepository;
-import com.kimjunsik.HireNow.timeformatting.TimeFormatter;
-import com.kimjunsik.HireNow.dto.ApplyResponse;
 import com.kimjunsik.HireNow.dto.JobListRequest;
 import com.kimjunsik.HireNow.dto.JobListResponse;
 import com.kimjunsik.HireNow.repository.ApplicationRepository;
+import com.kimjunsik.HireNow.repository.JobListingRepository;
+import com.kimjunsik.HireNow.service.ApplicationService;
 import com.kimjunsik.HireNow.service.JobListingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
@@ -35,37 +27,27 @@ public class AdminController {
 
 
     @PostMapping("/recruit")
-    public String saveRecruit(@ModelAttribute JobListRequest jobListRequest) {
+
+    public ResponseEntity<String> saveRecruit(@ModelAttribute JobListRequest jobListRequest) {
 
         return jobListingService.saveRecruit(jobListRequest);
+    }
+
+    @GetMapping("/recruit/hot")
+    public List<JobListResponse> getHotList() {
+        List<JobListResponse> jobListResponses = jobListingService.getHotJobList();
+        return jobListResponses;
+
 
     }
 
+    @GetMapping("/recruit/search")
+    public List<JobListResponse> getSearchList(@RequestParam String keyword) {
+        List<JobListResponse> jobListResponses = jobListingService.getSearchJobList(keyword);
+        return jobListResponses;
 
-
-
-    @GetMapping("/recruit/{jobListId}/{applicationId}") //전체리스트 받아오기
-    public ApplyResponse getDetail(@PathVariable Long jobListId,
-                                   @PathVariable Long applicationId) {
-
-        ApplyResponse applyResponse = jobListingService.getDetail(jobListId, applicationId);
-
-
-        return applyResponse;
     }
 
-
-
-
-    @PostMapping("/apply/{jobListId}") //전체리스트 받아오기
-    public List<ApplyResponse> getApplicationList(@PathVariable Long jobListId,
-                                                  @RequestBody Password password) {
-
-        List<ApplyResponse> applyResponse = jobListingService.getApplicationList(jobListId,password.getPassword());
-
-
-        return applyResponse;
-    }
 
     @GetMapping("/recruit")
     public List<JobListResponse> getList() {
